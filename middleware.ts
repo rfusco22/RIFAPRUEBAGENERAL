@@ -11,20 +11,33 @@ export function middleware(request: NextRequest) {
     console.log("[v0] Middleware - Ruta protegida:", request.nextUrl.pathname)
     console.log("[v0] Middleware - Token presente:", token ? "sí" : "no")
 
+    const cookieValue = request.cookies.get("admin_token")?.value
+    console.log(
+      "[v0] Middleware - Cookie admin_token:",
+      cookieValue ? `presente (${cookieValue.substring(0, 20)}...)` : "ausente",
+    )
+
     if (!token) {
       console.log("[v0] Middleware - Sin token, redirigiendo a login")
       return NextResponse.redirect(new URL("/login", request.url))
     }
 
-    const admin = verifyToken(token)
-    console.log("[v0] Middleware - Token válido:", admin ? "sí" : "no")
+    try {
+      const admin = verifyToken(token)
+      console.log("[v0] Middleware - Token válido:", admin ? "sí" : "no")
 
-    if (!admin) {
-      console.log("[v0] Middleware - Token inválido, redirigiendo a login")
+      if (admin) {
+        console.log("[v0] Middleware - Acceso permitido para:", admin.username)
+      }
+
+      if (!admin) {
+        console.log("[v0] Middleware - Token inválido, redirigiendo a login")
+        return NextResponse.redirect(new URL("/login", request.url))
+      }
+    } catch (error) {
+      console.error("[v0] Middleware - Error verificando token:", error)
       return NextResponse.redirect(new URL("/login", request.url))
     }
-
-    console.log("[v0] Middleware - Acceso permitido para:", admin.username)
   }
 
   return NextResponse.next()
