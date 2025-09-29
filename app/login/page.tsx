@@ -45,7 +45,7 @@ export default function LoginPage() {
         setCookie("admin_token", data.token, 7) // 7 días de expiración
         console.log("[v0] Token guardado, verificando cookie...")
 
-        await new Promise((resolve) => setTimeout(resolve, 100))
+        await new Promise((resolve) => setTimeout(resolve, 200))
 
         const savedToken = getCookie("admin_token")
         console.log("[v0] Token verificado en cookie:", savedToken ? "presente" : "ausente")
@@ -63,7 +63,7 @@ export default function LoginPage() {
 
             if (verifyResponse.ok) {
               console.log("[v0] Token verificado exitosamente, redirigiendo...")
-              router.replace("/admin")
+              window.location.href = "/admin"
             } else {
               console.log("[v0] Error: Token no válido después de guardar")
               setError("Error de autenticación. Intenta nuevamente.")
