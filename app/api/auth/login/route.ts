@@ -4,7 +4,19 @@ import { authenticateAdmin, generateToken } from "@/lib/auth"
 export async function POST(request: NextRequest) {
   try {
     console.log("[v0] Iniciando proceso de login")
-    const { username, password } = await request.json()
+
+    const contentType = request.headers.get("content-type")
+    console.log("[v0] Content-Type:", contentType)
+
+    if (!contentType || !contentType.includes("application/json")) {
+      console.log("[v0] Content-Type inválido")
+      return NextResponse.json({ error: "Content-Type debe ser application/json" }, { status: 400 })
+    }
+
+    const body = await request.json()
+    console.log("[v0] Body recibido:", body)
+
+    const { username, password } = body
     console.log("[v0] Datos recibidos:", { username, password: password ? "***" : "vacío" })
 
     if (!username || !password) {

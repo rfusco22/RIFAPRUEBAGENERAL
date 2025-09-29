@@ -7,15 +7,31 @@ const connectionConfig = {
   password: process.env.DB_PASSWORD || "tYRpxlvXCHqYQsyffpGTKOgfiQuFVjTA",
   database: process.env.DB_NAME || "rifa", // Cambiado de sistema_rifas a rifa
   ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
+  connectTimeout: 60000,
+  acquireTimeout: 60000,
+  timeout: 60000,
 }
 
 let connection: mysql.Connection | null = null
 
 export async function getConnection() {
-  if (!connection) {
-    connection = await mysql.createConnection(connectionConfig)
+  try {
+    if (!connection) {
+      console.log("[v0] Creando nueva conexión a la base de datos...")
+      console.log("[v0] Config de conexión:", {
+        host: connectionConfig.host,
+        port: connectionConfig.port,
+        user: connectionConfig.user,
+        database: connectionConfig.database,
+      })
+      connection = await mysql.createConnection(connectionConfig)
+      console.log("[v0] Conexión establecida exitosamente")
+    }
+    return connection
+  } catch (error) {
+    console.error("[v0] Error al conectar a la base de datos:", error)
+    throw error
   }
-  return connection
 }
 
 export async function query(sql: string, params?: any[]) {
@@ -28,6 +44,7 @@ export async function query(sql: string, params?: any[]) {
     return results
   } catch (error) {
     console.error("[v0] Error en query:", error)
+    connection = null
     throw error
   }
 }
