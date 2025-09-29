@@ -34,6 +34,7 @@ export function middleware(request: NextRequest) {
       }
 
       console.log("[v0] Middleware - Acceso permitido para:", admin.username)
+      return NextResponse.next()
     } catch (error) {
       console.error("[v0] Middleware - Error verificando token:", error)
       return NextResponse.redirect(new URL("/login", request.url))
