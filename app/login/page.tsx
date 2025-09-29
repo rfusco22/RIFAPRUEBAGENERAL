@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Trophy, Lock, User } from "lucide-react"
 import Link from "next/link"
-import { setCookie } from "@/lib/cookies"
+import { setCookie, getCookie } from "@/lib/cookies"
 
 export default function LoginPage() {
   const [username, setUsername] = useState("")
@@ -43,8 +43,18 @@ export default function LoginPage() {
         console.log("[v0] Login exitoso, guardando token...")
         // Guardar token en cookies
         setCookie("admin_token", data.token, 7) // 7 días de expiración
-        console.log("[v0] Token guardado, redirigiendo...")
-        router.push("/admin")
+        console.log("[v0] Token guardado, verificando cookie...")
+
+        const savedToken = getCookie("admin_token")
+        console.log("[v0] Token verificado en cookie:", savedToken ? "presente" : "ausente")
+
+        if (savedToken) {
+          console.log("[v0] Cookie confirmada, redirigiendo...")
+          window.location.href = "/admin"
+        } else {
+          console.log("[v0] Error: Cookie no se guardó correctamente")
+          setError("Error al guardar la sesión. Intenta nuevamente.")
+        }
       } else {
         console.log("[v0] Error en login:", data.error)
         setError(data.error || "Error al iniciar sesión")
