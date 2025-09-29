@@ -45,34 +45,14 @@ export default function LoginPage() {
         setCookie("admin_token", data.token, 7) // 7 días de expiración
         console.log("[v0] Token guardado, verificando cookie...")
 
-        await new Promise((resolve) => setTimeout(resolve, 200))
+        await new Promise((resolve) => setTimeout(resolve, 500))
 
         const savedToken = getCookie("admin_token")
         console.log("[v0] Token verificado en cookie:", savedToken ? "presente" : "ausente")
 
         if (savedToken) {
-          console.log("[v0] Cookie confirmada, verificando token con API...")
-
-          try {
-            const verifyResponse = await fetch("/api/auth/verify", {
-              method: "GET",
-              headers: {
-                Authorization: `Bearer ${savedToken}`,
-              },
-            })
-
-            if (verifyResponse.ok) {
-              console.log("[v0] Token verificado exitosamente, redirigiendo...")
-              window.location.href = "/admin"
-            } else {
-              console.log("[v0] Error: Token no válido después de guardar")
-              setError("Error de autenticación. Intenta nuevamente.")
-            }
-          } catch (verifyError) {
-            console.error("[v0] Error verificando token:", verifyError)
-            console.log("[v0] Fallback: redirigiendo directamente...")
-            window.location.href = "/admin"
-          }
+          console.log("[v0] Cookie confirmada, redirigiendo directamente...")
+          window.location.replace("/admin")
         } else {
           console.log("[v0] Error: Cookie no se guardó correctamente")
           setError("Error al guardar la sesión. Intenta nuevamente.")
