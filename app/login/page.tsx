@@ -25,6 +25,7 @@ export default function LoginPage() {
     setError("")
 
     try {
+      console.log("[v0] Enviando solicitud de login...")
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
@@ -33,16 +34,22 @@ export default function LoginPage() {
         body: JSON.stringify({ username, password }),
       })
 
+      console.log("[v0] Respuesta recibida:", response.status)
       const data = await response.json()
+      console.log("[v0] Datos de respuesta:", data)
 
       if (response.ok) {
+        console.log("[v0] Login exitoso, guardando token...")
         // Guardar token en localStorage
         localStorage.setItem("admin_token", data.token)
+        console.log("[v0] Token guardado, redirigiendo...")
         router.push("/admin")
       } else {
+        console.log("[v0] Error en login:", data.error)
         setError(data.error || "Error al iniciar sesión")
       }
     } catch (error) {
+      console.error("[v0] Error de conexión:", error)
       setError("Error de conexión. Intenta nuevamente.")
     } finally {
       setIsLoading(false)
@@ -134,7 +141,7 @@ export default function LoginPage() {
                 Usuario: <code className="bg-background px-2 py-1 rounded text-foreground">admin</code>
               </p>
               <p>
-                Contraseña: <code className="bg-background px-2 py-1 rounded text-foreground">admin123</code>
+                Contraseña: <code className="bg-background px-2 py-1 rounded text-foreground">1</code>
               </p>
             </div>
           </CardContent>
