@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Trophy, Lock, User } from "lucide-react"
 import Link from "next/link"
+import { setCookie } from "@/lib/cookies"
 
 export default function LoginPage() {
   const [username, setUsername] = useState("")
@@ -40,8 +41,8 @@ export default function LoginPage() {
 
       if (response.ok) {
         console.log("[v0] Login exitoso, guardando token...")
-        // Guardar token en localStorage
-        localStorage.setItem("admin_token", data.token)
+        // Guardar token en cookies
+        setCookie("admin_token", data.token, 7) // 7 días de expiración
         console.log("[v0] Token guardado, redirigiendo...")
         router.push("/admin")
       } else {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { getCookie, deleteCookie } from "@/lib/cookies"
 
 interface Admin {
   id: number
@@ -15,7 +16,7 @@ export function useAuth() {
   const router = useRouter()
 
   useEffect(() => {
-    const token = localStorage.getItem("admin_token")
+    const token = getCookie("admin_token")
     if (token) {
       // Verificar token con el servidor
       fetch("/api/auth/verify", {
@@ -28,11 +29,11 @@ export function useAuth() {
           if (data.admin) {
             setAdmin(data.admin)
           } else {
-            localStorage.removeItem("admin_token")
+            deleteCookie("admin_token")
           }
         })
         .catch(() => {
-          localStorage.removeItem("admin_token")
+          deleteCookie("admin_token")
         })
         .finally(() => {
           setIsLoading(false)
@@ -43,7 +44,7 @@ export function useAuth() {
   }, [])
 
   const logout = () => {
-    localStorage.removeItem("admin_token")
+    deleteCookie("admin_token")
     setAdmin(null)
     router.push("/login")
   }

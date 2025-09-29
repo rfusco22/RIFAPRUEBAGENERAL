@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Trophy, Users, DollarSign, Settings, LogOut, Plus, Eye, Edit } from "lucide-react"
 import Link from "next/link"
+import { getCookie } from "@/lib/cookies"
 
 interface DashboardStats {
   totalRifas: number
@@ -35,9 +36,10 @@ export default function AdminDashboard() {
 
   const fetchDashboardStats = async () => {
     try {
+      const token = getCookie("admin_token")
       const response = await fetch("/api/admin/dashboard", {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("admin_token")}`,
+          Authorization: `Bearer ${token}`,
         },
       })
       const data = await response.json()
