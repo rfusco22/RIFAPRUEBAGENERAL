@@ -4,8 +4,18 @@
 export function setCookie(name: string, value: string, days = 7) {
   const expires = new Date()
   expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000)
-  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax;Secure=${window.location.protocol === "https:"}`
+
+  const isSecure = window.location.protocol === "https:"
+  const cookieString = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax${isSecure ? ";Secure" : ""}`
+
+  document.cookie = cookieString
   console.log("[v0] Cookie configurada:", `${name}=${value.substring(0, 20)}...`)
+  console.log("[v0] Cookie string completo:", cookieString)
+
+  setTimeout(() => {
+    const saved = getCookie(name)
+    console.log("[v0] Verificación cookie guardada:", saved ? "exitosa" : "falló")
+  }, 50)
 }
 
 export function getCookie(name: string): string | null {
