@@ -14,14 +14,18 @@ export async function GET() {
     console.log("[v0] Tabla admins existe:", tables)
 
     // Verificar si existe el usuario admin
-    const admins = await query("SELECT id, username, email FROM admins WHERE username = 'admin'")
+    const admins = await query("SELECT id, username, email, password_hash FROM admins WHERE username = 'admin'")
     console.log("[v0] Usuario admin existe:", admins)
+
+    const tableStructure = await query("DESCRIBE admins")
+    console.log("[v0] Estructura de tabla admins:", tableStructure)
 
     return NextResponse.json({
       success: true,
       connection: "OK",
       tables: tables,
       admins: admins,
+      tableStructure: tableStructure,
     })
   } catch (error) {
     console.error("[v0] Error en test de DB:", error)
