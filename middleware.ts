@@ -5,17 +5,18 @@ import { verifyToken } from "@/lib/auth"
 export function middleware(request: NextRequest) {
   // Proteger rutas del admin
   if (request.nextUrl.pathname.startsWith("/admin")) {
-    const token =
-      request.headers.get("authorization")?.replace("Bearer ", "") || request.cookies.get("admin_token")?.value
-
     console.log("[v0] Middleware - Ruta protegida:", request.nextUrl.pathname)
-    console.log("[v0] Middleware - Token presente:", token ? "sí" : "no")
 
-    const cookieValue = request.cookies.get("admin_token")?.value
+    const authHeader = request.headers.get("authorization")
+    const cookieToken = request.cookies.get("admin_token")?.value
+    const token = authHeader?.replace("Bearer ", "") || cookieToken
+
+    console.log("[v0] Middleware - Auth header:", authHeader ? "presente" : "ausente")
     console.log(
-      "[v0] Middleware - Cookie admin_token:",
-      cookieValue ? `presente (${cookieValue.substring(0, 20)}...)` : "ausente",
+      "[v0] Middleware - Cookie token:",
+      cookieToken ? `presente (${cookieToken.substring(0, 20)}...)` : "ausente",
     )
+    console.log("[v0] Middleware - Token final:", token ? `presente (${token.substring(0, 20)}...)` : "ausente")
 
     if (!token) {
       console.log("[v0] Middleware - Sin token, redirigiendo a login")
@@ -23,17 +24,16 @@ export function middleware(request: NextRequest) {
     }
 
     try {
+      console.log("[v0] Middleware - Verificando token...")
       const admin = verifyToken(token)
-      console.log("[v0] Middleware - Token válido:", admin ? "sí" : "no")
-
-      if (admin) {
-        console.log("[v0] Middleware - Acceso permitido para:", admin.username)
-      }
+      console.log("[v0] Middleware - Resultado verificación:", admin ? `válido (${admin.username})` : "inválido")
 
       if (!admin) {
         console.log("[v0] Middleware - Token inválido, redirigiendo a login")
         return NextResponse.redirect(new URL("/login", request.url))
       }
+
+      console.log("[v0] Middleware - Acceso permitido para:", admin.username)
     } catch (error) {
       console.error("[v0] Middleware - Error verificando token:", error)
       return NextResponse.redirect(new URL("/login", request.url))
