@@ -4,7 +4,8 @@
 export function setCookie(name: string, value: string, days = 7) {
   const expires = new Date()
   expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000)
-  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax`
+  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax;Secure=${window.location.protocol === "https:"}`
+  console.log("[v0] Cookie configurada:", `${name}=${value.substring(0, 20)}...`)
 }
 
 export function getCookie(name: string): string | null {
