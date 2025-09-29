@@ -59,13 +59,23 @@ export function generateToken(admin: Admin): string {
 
 export function verifyToken(token: string): Admin | null {
   try {
+    console.log("[v0] verifyToken - Verificando token:", token.substring(0, 20) + "...")
+    console.log("[v0] verifyToken - JWT_SECRET disponible:", JWT_SECRET ? "sí" : "no")
+
     const decoded = jwt.verify(token, JWT_SECRET) as any
+    console.log("[v0] verifyToken - Token decodificado exitosamente:", {
+      id: decoded.id,
+      username: decoded.username,
+      email: decoded.email,
+    })
+
     return {
       id: decoded.id,
       username: decoded.username,
       email: decoded.email,
     }
   } catch (error) {
+    console.error("[v0] verifyToken - Error verificando token:", error)
     return null
   }
 }
