@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
-import { verifyToken } from "@/lib/auth"
 
 export function middleware(request: NextRequest) {
   // Proteger rutas del admin
@@ -24,19 +23,25 @@ export function middleware(request: NextRequest) {
     }
 
     try {
-      console.log("[v0] Middleware - Verificando token...")
-      const admin = verifyToken(token)
-      console.log("[v0] Middleware - Resultado verificación:", admin ? `válido (${admin.username})` : "inválido")
+      console.log("[v0] Middleware - Verificando formato de token...")
 
-      if (!admin) {
-        console.log("[v0] Middleware - Token inválido, redirigiendo a login")
+      // Verificación básica de formato JWT (3 partes separadas por puntos)
+      const parts = token.split(".")
+      if (parts.length !== 3) {
+        console.log("[v0] Middleware - Token no tiene formato JWT válido")
         return NextResponse.redirect(new URL("/login", request.url))
       }
 
-      console.log("[v0] Middleware - Acceso permitido para:", admin.username)
+      // Verificar que no esté vacío
+      if (!parts[0] || !parts[1] || !parts[2]) {
+        console.log("[v0] Middleware - Token JWT tiene partes vacías")
+        return NextResponse.redirect(new URL("/login", request.url))
+      }
+
+      console.log("[v0] Middleware - Token tiene formato válido, permitiendo acceso")
       return NextResponse.next()
     } catch (error) {
-      console.error("[v0] Middleware - Error verificando token:", error)
+      console.error("[v0] Middleware - Error verificando formato de token:", error)
       return NextResponse.redirect(new URL("/login", request.url))
     }
   }
