@@ -26,13 +26,18 @@ interface Rifa {
   available_numbers: number
 }
 
+interface RaffleNumber {
+  number: string
+  status: "available" | "reserved" | "sold"
+}
+
 export default function RifasPage() {
   const router = useRouter()
   const [rifas, setRifas] = useState<Rifa[]>([])
   const [selectedRifa, setSelectedRifa] = useState<Rifa | null>(null)
   const [selectedNumbers, setSelectedNumbers] = useState<string[]>([])
   const [searchNumber, setSearchNumber] = useState("")
-  const [availableNumbers, setAvailableNumbers] = useState<string[]>([])
+  const [allNumbers, setAllNumbers] = useState<RaffleNumber[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false)
   const [isProcessingPayment, setIsProcessingPayment] = useState(false)
@@ -60,11 +65,14 @@ export default function RifasPage() {
 
   const fetchAvailableNumbers = async (rifaId: number) => {
     try {
+      console.log("[v0] Fetching numbers for rifa:", rifaId)
       const response = await fetch(`/api/rifas/${rifaId}/numbers`)
       const data = await response.json()
-      setAvailableNumbers(data.availableNumbers || [])
+      console.log("[v0] Received numbers:", data.numbers?.length)
+      setAllNumbers(data.numbers || [])
     } catch (error) {
-      console.error("Error fetching numbers:", error)
+      console.error("[v0] Error fetching numbers:", error)
+      setAllNumbers([])
     }
   }
 
@@ -74,7 +82,10 @@ export default function RifasPage() {
     fetchAvailableNumbers(rifa.id)
   }
 
-  const handleNumberSelect = (number: string) => {
+  const handleNumberSelect = (numberObj: RaffleNumber) => {
+    if (numberObj.status !== "available") return
+
+    const number = numberObj.number
     if (selectedNumbers.includes(number)) {
       setSelectedNumbers(selectedNumbers.filter((n) => n !== number))
     } else {
@@ -83,7 +94,9 @@ export default function RifasPage() {
   }
 
   const handleQuickSelect = (count: number) => {
-    const available = availableNumbers.filter((n) => !selectedNumbers.includes(n))
+    const available = allNumbers
+      .filter((n) => n.status === "available" && !selectedNumbers.includes(n.number))
+      .map((n) => n.number)
     const randomNumbers = available.sort(() => 0.5 - Math.random()).slice(0, count)
     setSelectedNumbers([...selectedNumbers, ...randomNumbers])
   }
@@ -110,7 +123,6 @@ export default function RifasPage() {
       const data = await response.json()
 
       if (response.ok) {
-        // Redirigir a la página de estado del pago
         router.push(`/pago/${data.paymentId}`)
       } else {
         alert(data.error || "Error al procesar el pago")
@@ -122,9 +134,24 @@ export default function RifasPage() {
     }
   }
 
-  const filteredNumbers = availableNumbers.filter((number) => number.includes(searchNumber))
+  const filteredNumbers = allNumbers.filter((numberObj) => numberObj.number.includes(searchNumber))
 
   const totalPrice = selectedNumbers.length * (selectedRifa?.ticket_price || 0)
+
+  const getNumberButtonClass = (numberObj: RaffleNumber, isSelected: boolean) => {
+    if (isSelected) return "bg-primary text-primary-foreground hover:bg-primary/90"
+
+    switch (numberObj.status) {
+      case "available":
+        return "bg-green-500 text-white hover:bg-green-600 border-green-600"
+      case "reserved":
+        return "bg-yellow-500 text-white hover:bg-yellow-600 border-yellow-600 cursor-not-allowed"
+      case "sold":
+        return "bg-red-500 text-white hover:bg-red-600 border-red-600 cursor-not-allowed"
+      default:
+        return "bg-green-500 text-white hover:bg-green-600 border-green-600"
+    }
+  }
 
   if (isLoading) {
     return (
@@ -184,7 +211,7 @@ export default function RifasPage() {
                       <Badge variant={rifa.status === "active" ? "default" : "secondary"}>
                         {rifa.status === "active" ? "Activa" : "Finalizada"}
                       </Badge>
-                      <span className="text-2xl font-bold text-primary">${rifa.ticket_price}</span>
+                      <span className="text-2xl font-bold text-primary">${Number(rifa.ticket_price).toFixed(2)}</span>
                     </div>
                     <CardTitle className="text-xl">{rifa.title}</CardTitle>
                     <CardDescription>{rifa.description}</CardDescription>
@@ -222,7 +249,7 @@ export default function RifasPage() {
                 <p className="text-muted-foreground">{selectedRifa.prize_description}</p>
               </div>
               <div className="text-right">
-                <div className="text-3xl font-bold text-primary">${selectedRifa.ticket_price}</div>
+                <div className="text-3xl font-bold text-primary">${Number(selectedRifa.ticket_price).toFixed(2)}</div>
                 <p className="text-sm text-muted-foreground">por número</p>
               </div>
             </div>
@@ -236,6 +263,21 @@ export default function RifasPage() {
                     <CardDescription>Números del 000 al 999. Selecciona los que más te gusten.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    <div className="flex flex-wrap gap-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 bg-green-500 rounded"></div>
+                        <span>Disponible</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+                        <span>Reservado</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 bg-red-500 rounded"></div>
+                        <span>Vendido</span>
+                      </div>
+                    </div>
+
                     {/* Búsqueda y selección rápida */}
                     <div className="flex flex-col sm:flex-row gap-4">
                       <div className="flex-1">
@@ -264,19 +306,23 @@ export default function RifasPage() {
                       </div>
                     </div>
 
-                    {/* Grid de números */}
                     <div className="grid grid-cols-8 sm:grid-cols-10 md:grid-cols-12 gap-2 max-h-96 overflow-y-auto">
-                      {filteredNumbers.map((number) => (
-                        <Button
-                          key={number}
-                          variant={selectedNumbers.includes(number) ? "default" : "outline"}
-                          size="sm"
-                          className="h-10 text-xs"
-                          onClick={() => handleNumberSelect(number)}
-                        >
-                          {number}
-                        </Button>
-                      ))}
+                      {filteredNumbers.map((numberObj) => {
+                        const isSelected = selectedNumbers.includes(numberObj.number)
+                        const isDisabled = numberObj.status !== "available" && !isSelected
+
+                        return (
+                          <Button
+                            key={numberObj.number}
+                            size="sm"
+                            className={`h-10 text-xs ${getNumberButtonClass(numberObj, isSelected)}`}
+                            onClick={() => handleNumberSelect(numberObj)}
+                            disabled={isDisabled}
+                          >
+                            {numberObj.number}
+                          </Button>
+                        )
+                      })}
                     </div>
 
                     {filteredNumbers.length === 0 && (
@@ -305,7 +351,10 @@ export default function RifasPage() {
                                 key={number}
                                 variant="secondary"
                                 className="cursor-pointer"
-                                onClick={() => handleNumberSelect(number)}
+                                onClick={() => {
+                                  const numberObj = allNumbers.find((n) => n.number === number)
+                                  if (numberObj) handleNumberSelect(numberObj)
+                                }}
                               >
                                 {number} ×
                               </Badge>
