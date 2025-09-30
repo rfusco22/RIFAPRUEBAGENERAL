@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
       totalRifas: (totalRifasResult as any[])[0]?.count || 0,
       activeRifas: (activeRifasResult as any[])[0]?.count || 0,
       totalUsers: (totalUsersResult as any[])[0]?.count || 0,
-      totalRevenue: (totalRevenueResult as any[])[0]?.total || 0,
+      totalRevenue: Number((totalRevenueResult as any[])[0]?.total || 0),
       pendingPayments: (pendingPaymentsResult as any[])[0]?.count || 0,
     }
 
