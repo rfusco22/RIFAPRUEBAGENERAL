@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -67,6 +69,9 @@ export default function PaymentStatusPage() {
     notas: "",
   })
 
+  const [proofFile, setProofFile] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string>("")
+
   useEffect(() => {
     if (paymentId) {
       fetchPaymentStatus()
@@ -124,6 +129,19 @@ export default function PaymentStatusPage() {
     }
   }
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setProofFile(file)
+      // Crear preview
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
   const handleSubmitProof = async () => {
     if (!payment) return
 
@@ -145,7 +163,7 @@ export default function PaymentStatusPage() {
       }
     }
 
-    if (!proofData.capture_url) {
+    if (!proofFile) {
       setError("Por favor sube la captura del comprobante de pago")
       return
     }
@@ -154,16 +172,30 @@ export default function PaymentStatusPage() {
     setError("")
 
     try {
-      const response = await fetch("/api/payments/update-proof", {
+      // Crear FormData para enviar archivo
+      const formData = new FormData()
+      formData.append("file", proofFile)
+      formData.append("paymentId", payment.id.toString())
+      formData.append("paymentMethod", payment.paymentMethod)
+
+      // Agregar datos específicos según método de pago
+      if (payment.paymentMethod === "pago_movil") {
+        formData.append("bankOrigin", proofData.banco_origen)
+        formData.append("phone", proofData.telefono)
+        formData.append("cedula", proofData.cedula)
+        formData.append("reference", proofData.referencia)
+        if (proofData.monto) formData.append("amount", proofData.monto)
+      } else if (payment.paymentMethod === "zelle") {
+        formData.append("zelleEmail", proofData.zelle_email_phone)
+        formData.append("reference", proofData.referencia)
+      } else if (payment.paymentMethod === "binance") {
+        formData.append("transactionId", proofData.transaction_id)
+        if (proofData.monto) formData.append("amount", proofData.monto)
+      }
+
+      const response = await fetch("/api/payments/upload-proof", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          paymentId: payment.id,
-          paymentProofUrl: proofData.capture_url,
-          paymentDetails: proofData,
-        }),
+        body: formData,
       })
 
       const data = await response.json()
@@ -481,18 +513,28 @@ export default function PaymentStatusPage() {
                       </>
                     )}
 
-                    {/* Captura del comprobante (común para todos) */}
                     <div>
-                      <Label htmlFor="capture_url">URL de la Captura del Comprobante *</Label>
+                      <Label htmlFor="proof_file">Captura del Comprobante *</Label>
                       <Input
-                        id="capture_url"
-                        placeholder="https://ejemplo.com/captura.jpg"
-                        value={proofData.capture_url}
-                        onChange={(e) => setProofData({ ...proofData, capture_url: e.target.value })}
+                        id="proof_file"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        className="cursor-pointer"
                       />
                       <p className="text-xs text-muted-foreground mt-1">
-                        Sube tu captura a un servicio como Imgur, ImgBB o Google Drive y pega el enlace aquí
+                        Sube una imagen del comprobante de pago (JPG, PNG, etc.)
                       </p>
+                      {/* Preview de la imagen */}
+                      {previewUrl && (
+                        <div className="mt-4 border rounded-lg overflow-hidden">
+                          <img
+                            src={previewUrl || "/placeholder.svg"}
+                            alt="Preview del comprobante"
+                            className="w-full h-auto max-h-64 object-contain"
+                          />
+                        </div>
+                      )}
                     </div>
 
                     {/* Notas adicionales */}
