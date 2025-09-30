@@ -209,7 +209,7 @@ export default function PaymentStatusPage() {
                   <div className="border-t pt-4">
                     <div className="flex justify-between items-center">
                       <span className="font-semibold">Total Pagado:</span>
-                      <span className="text-2xl font-bold text-primary">${payment.amount.toFixed(2)}</span>
+                      <span className="text-2xl font-bold text-primary">${Number(payment.amount).toFixed(2)}</span>
                     </div>
                   </div>
                 </CardContent>
