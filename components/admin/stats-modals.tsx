@@ -211,7 +211,7 @@ export function PaymentsModal({ open, onOpenChange, payments, type }: PaymentsMo
                     </div>
                   </TableCell>
                   <TableCell className="font-medium">{payment.rifa.title}</TableCell>
-                  <TableCell className="font-semibold">${payment.amount.toFixed(2)}</TableCell>
+                  <TableCell className="font-semibold">${Number(payment.amount).toFixed(2)}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
                       {payment.numbersPurchased.slice(0, 3).map((num, idx) => (
