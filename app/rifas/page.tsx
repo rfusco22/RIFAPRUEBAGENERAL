@@ -9,7 +9,19 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Trophy, Users, Clock, Search, ShoppingCart, ArrowLeft, CreditCard } from "lucide-react"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import {
+  Trophy,
+  Users,
+  Clock,
+  Search,
+  ShoppingCart,
+  ArrowLeft,
+  CreditCard,
+  Smartphone,
+  DollarSign,
+  Banknote,
+} from "lucide-react"
 import Link from "next/link"
 
 interface Rifa {
@@ -41,6 +53,12 @@ export default function RifasPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false)
   const [isProcessingPayment, setIsProcessingPayment] = useState(false)
+  const [paymentMethod, setPaymentMethod] = useState<string>("zelle")
+  const [contactInfo, setContactInfo] = useState({
+    name: "",
+    phone: "",
+    email: "",
+  })
   const [userInfo, setUserInfo] = useState({
     name: "",
     email: "",
@@ -49,6 +67,7 @@ export default function RifasPage() {
 
   useEffect(() => {
     fetchRifas()
+    fetchContactInfo()
   }, [])
 
   const fetchRifas = async () => {
@@ -73,6 +92,22 @@ export default function RifasPage() {
     } catch (error) {
       console.error("[v0] Error fetching numbers:", error)
       setAllNumbers([])
+    }
+  }
+
+  const fetchContactInfo = async () => {
+    try {
+      const response = await fetch("/api/settings")
+      const data = await response.json()
+      if (data.settings) {
+        setContactInfo({
+          name: data.settings.contact_person_name || "",
+          phone: data.settings.contact_person_phone || "",
+          email: data.settings.contact_person_email || "",
+        })
+      }
+    } catch (error) {
+      console.error("Error fetching contact info:", error)
     }
   }
 
@@ -116,7 +151,7 @@ export default function RifasPage() {
           rifaId: selectedRifa.id,
           selectedNumbers,
           userInfo,
-          paymentMethod: "card",
+          paymentMethod,
         }),
       })
 
@@ -394,10 +429,10 @@ export default function RifasPage() {
 
       {/* Dialog de compra */}
       <Dialog open={showPurchaseDialog} onOpenChange={setShowPurchaseDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Completar Compra</DialogTitle>
-            <DialogDescription>Ingresa tus datos para proceder con el pago</DialogDescription>
+            <DialogDescription>Ingresa tus datos y selecciona el método de pago</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -430,6 +465,56 @@ export default function RifasPage() {
                 onChange={(e) => setUserInfo({ ...userInfo, phone: e.target.value })}
               />
             </div>
+
+            <div>
+              <Label>Método de pago</Label>
+              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="mt-2 space-y-3">
+                <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent cursor-pointer">
+                  <RadioGroupItem value="zelle" id="zelle" />
+                  <Label htmlFor="zelle" className="flex items-center space-x-2 cursor-pointer flex-1">
+                    <DollarSign className="h-5 w-5 text-blue-600" />
+                    <span>Zelle</span>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent cursor-pointer">
+                  <RadioGroupItem value="pago_movil" id="pago_movil" />
+                  <Label htmlFor="pago_movil" className="flex items-center space-x-2 cursor-pointer flex-1">
+                    <Smartphone className="h-5 w-5 text-green-600" />
+                    <span>Pago Móvil</span>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent cursor-pointer">
+                  <RadioGroupItem value="binance" id="binance" />
+                  <Label htmlFor="binance" className="flex items-center space-x-2 cursor-pointer flex-1">
+                    <CreditCard className="h-5 w-5 text-yellow-600" />
+                    <span>Binance</span>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent cursor-pointer">
+                  <RadioGroupItem value="efectivo" id="efectivo" />
+                  <Label htmlFor="efectivo" className="flex items-center space-x-2 cursor-pointer flex-1">
+                    <Banknote className="h-5 w-5 text-gray-600" />
+                    <span>Efectivo</span>
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            {paymentMethod === "efectivo" && (
+              <Alert className="bg-yellow-50 border-yellow-200">
+                <AlertDescription className="text-sm">
+                  <strong>Pago en Efectivo:</strong>
+                  <br />
+                  Tus números serán reservados. Debes contactar a:
+                  <br />
+                  <strong>{contactInfo.name}</strong>
+                  <br />
+                  Teléfono: <strong>{contactInfo.phone}</strong>
+                  <br />
+                  Email: <strong>{contactInfo.email}</strong>
+                </AlertDescription>
+              </Alert>
+            )}
 
             <Alert>
               <AlertDescription>
@@ -464,8 +549,7 @@ export default function RifasPage() {
                   </>
                 ) : (
                   <>
-                    <CreditCard className="h-4 w-4 mr-2" />
-                    Pagar ${totalPrice.toFixed(2)}
+                    {paymentMethod === "efectivo" ? "Reservar" : "Pagar"} ${totalPrice.toFixed(2)}
                   </>
                 )}
               </Button>
