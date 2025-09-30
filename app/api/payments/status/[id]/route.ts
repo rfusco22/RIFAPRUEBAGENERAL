@@ -30,6 +30,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         id: payment.id,
         status: payment.payment_status,
         amount: payment.amount,
+        paymentMethod: payment.payment_method,
         numbers: JSON.parse(payment.numbers_purchased),
         user: {
           name: payment.name,
@@ -39,6 +40,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
           title: payment.rifa_title,
         },
         paymentReference: payment.payment_reference,
+        paymentProofUrl: payment.payment_proof_url,
+        paymentDetails: payment.payment_details ? JSON.parse(payment.payment_details) : null,
         createdAt: payment.created_at,
       },
     })
