@@ -83,7 +83,7 @@ export function RifasModal({ open, onOpenChange, rifas, type }: RifasModalProps)
                       {rifa.status === "active" ? "Activa" : rifa.status === "completed" ? "Completada" : "Cancelada"}
                     </Badge>
                   </TableCell>
-                  <TableCell>${rifa.ticket_price.toFixed(2)}</TableCell>
+                  <TableCell>${Number(rifa.ticket_price).toFixed(2)}</TableCell>
                   <TableCell>{rifa.total_numbers}</TableCell>
                   <TableCell>{new Date(rifa.start_date).toLocaleDateString()}</TableCell>
                   <TableCell>{new Date(rifa.end_date).toLocaleDateString()}</TableCell>
