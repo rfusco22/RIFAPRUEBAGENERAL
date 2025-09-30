@@ -365,7 +365,7 @@ export default function AdminDashboard() {
                                 : "Cancelada"}
                           </Badge>
                           <span className="text-sm">{rifa.total_numbers} números totales</span>
-                          <span className="text-sm">${rifa.ticket_price.toFixed(2)} por número</span>
+                          <span className="text-sm">${Number(rifa.ticket_price).toFixed(2)} por número</span>
                         </div>
                       </div>
                       <div className="flex space-x-2">
