@@ -129,7 +129,9 @@ export default function AdminDashboard() {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${stats.totalRevenue.toFixed(2)}</div>
+              <div className="text-2xl font-bold">
+                ${typeof stats.totalRevenue === "number" ? stats.totalRevenue.toFixed(2) : "0.00"}
+              </div>
             </CardContent>
           </Card>
 
