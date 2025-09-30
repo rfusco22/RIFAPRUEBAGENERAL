@@ -56,8 +56,9 @@ export async function POST(request: NextRequest) {
     // Calcular monto total
     const totalAmount = selectedNumbers.length * rifa.ticket_price
 
-    const initialStatus = paymentMethod === "efectivo" ? "pending" : "pending"
-    const numberStatus = paymentMethod === "efectivo" ? "reserved" : "reserved"
+    // El pago solo se completa cuando el administrador lo verifica manualmente
+    const initialStatus = "pending"
+    const numberStatus = "reserved"
 
     // Crear registro de pago
     const paymentResult = (await query(
@@ -70,35 +71,17 @@ export async function POST(request: NextRequest) {
 
     for (const number of selectedNumbers) {
       await query(
-        `UPDATE raffle_numbers SET status = ?, user_id = ?, reserved_at = NOW() WHERE rifa_id = ? AND number = ?`,
-        [numberStatus, userId, rifaId, number],
+        `UPDATE raffle_numbers SET status = ?, user_id = ?, reserved_at = NOW(), payment_id = ? WHERE rifa_id = ? AND number = ?`,
+        [numberStatus, userId, paymentId, rifaId, number],
       )
     }
 
-    if (paymentMethod !== "efectivo") {
-      setTimeout(async () => {
-        try {
-          await query('UPDATE payments SET payment_status = "completed", payment_reference = ? WHERE id = ?', [
-            `PAY_${paymentId}_${Date.now()}`,
-            paymentId,
-          ])
-
-          for (const number of selectedNumbers) {
-            await query('UPDATE raffle_numbers SET status = "paid", paid_at = NOW() WHERE rifa_id = ? AND number = ?', [
-              rifaId,
-              number,
-            ])
-          }
-        } catch (error) {
-          console.error("Error completing payment:", error)
-        }
-      }, 2000)
-    }
+    // Ahora todos los pagos requieren verificación manual del administrador
 
     return NextResponse.json({
       success: true,
       paymentId,
-      message: paymentMethod === "efectivo" ? "Números reservados exitosamente" : "Pago procesado exitosamente",
+      message: "Números reservados. Por favor sube tu comprobante de pago para verificación.",
       totalAmount,
       selectedNumbers,
       paymentMethod,
