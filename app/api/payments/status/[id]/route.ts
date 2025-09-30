@@ -40,8 +40,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
           title: payment.rifa_title,
         },
         paymentReference: payment.payment_reference,
-        paymentProofUrl: payment.payment_proof_url,
+        paymentProofUrl: payment.proof_image_url,
         paymentDetails: payment.payment_details ? JSON.parse(payment.payment_details) : null,
+        proofSubmittedAt: payment.proof_submitted_at,
         createdAt: payment.created_at,
       },
     })
