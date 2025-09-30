@@ -6,7 +6,20 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Trophy, Users, DollarSign, Settings, LogOut, Plus, Eye, Edit, CheckCircle, XCircle } from "lucide-react"
+import {
+  Trophy,
+  Users,
+  DollarSign,
+  Settings,
+  LogOut,
+  Plus,
+  Eye,
+  Edit,
+  CheckCircle,
+  XCircle,
+  ExternalLink,
+  ImageIcon,
+} from "lucide-react"
 import Link from "next/link"
 import { getCookie } from "@/lib/cookies"
 import { RifasModal, UsersModal, PaymentsModal } from "@/components/admin/stats-modals"
@@ -21,6 +34,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface DashboardStats {
   totalRifas: number
@@ -58,6 +73,8 @@ interface Payment {
   paymentMethod: string
   numbersPurchased: string[]
   createdAt: string
+  paymentProofUrl?: string
+  paymentDetails?: any
   user: {
     name: string
     email: string
@@ -82,6 +99,7 @@ export default function AdminDashboard() {
   const [showUsersModal, setShowUsersModal] = useState(false)
   const [showRevenueModal, setShowRevenueModal] = useState(false)
   const [showPendingPaymentsModal, setShowPendingPaymentsModal] = useState(false)
+  const [showPaymentDetailsDialog, setShowPaymentDetailsDialog] = useState(false)
 
   const [rifas, setRifas] = useState<Rifa[]>([])
   const [users, setUsers] = useState<User[]>([])
@@ -192,6 +210,7 @@ export default function AdminDashboard() {
       if (response.ok) {
         setSuccess(status === "completed" ? "Pago verificado y aprobado exitosamente" : "Pago marcado como fallido")
         setShowVerifyDialog(false)
+        setShowPaymentDetailsDialog(false)
         setSelectedPayment(null)
         // Refresh data
         await Promise.all([fetchDashboardStats(), fetchPayments()])
@@ -509,6 +528,16 @@ export default function AdminDashboard() {
                           {payment.numbersPurchased.length > 3 && ` +${payment.numbersPurchased.length - 3} más`}
                         </p>
                         <p className="text-sm text-muted-foreground">Rifa: {payment.rifa.title}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Método:{" "}
+                          {payment.paymentMethod === "pago_movil"
+                            ? "Pago Móvil"
+                            : payment.paymentMethod === "zelle"
+                              ? "Zelle"
+                              : payment.paymentMethod === "binance"
+                                ? "Binance"
+                                : "Efectivo"}
+                        </p>
                       </div>
                       <div className="flex items-center gap-4">
                         <div className="text-right">
@@ -534,16 +563,29 @@ export default function AdminDashboard() {
                           </p>
                         </div>
                         {payment.paymentStatus === "pending" && (
-                          <Button
-                            size="sm"
-                            onClick={() => {
-                              setSelectedPayment(payment)
-                              setShowVerifyDialog(true)
-                            }}
-                          >
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            Verificar Pago
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedPayment(payment)
+                                setShowPaymentDetailsDialog(true)
+                              }}
+                            >
+                              <Eye className="h-4 w-4 mr-2" />
+                              Ver Detalles
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                setSelectedPayment(payment)
+                                setShowVerifyDialog(true)
+                              }}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              Verificar
+                            </Button>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -578,6 +620,221 @@ export default function AdminDashboard() {
         payments={pendingPayments}
         type="pending"
       />
+
+      {/* Dialog for payment details */}
+      <Dialog open={showPaymentDetailsDialog} onOpenChange={setShowPaymentDetailsDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Detalles del Pago #{selectedPayment?.id}</DialogTitle>
+            <DialogDescription>Información completa y comprobante de pago</DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[70vh]">
+            {selectedPayment && (
+              <div className="space-y-4 pr-4">
+                {/* Información del usuario */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Información del Usuario</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <p className="text-sm">
+                      <strong>Nombre:</strong> {selectedPayment.user.name}
+                    </p>
+                    <p className="text-sm">
+                      <strong>Email:</strong> {selectedPayment.user.email}
+                    </p>
+                  </CardContent>
+                </Card>
+
+                {/* Información del pago */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Información del Pago</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <p className="text-sm">
+                      <strong>Rifa:</strong> {selectedPayment.rifa.title}
+                    </p>
+                    <p className="text-sm">
+                      <strong>Monto:</strong> ${Number(selectedPayment.amount).toFixed(2)}
+                    </p>
+                    <p className="text-sm">
+                      <strong>Método:</strong>{" "}
+                      {selectedPayment.paymentMethod === "pago_movil"
+                        ? "Pago Móvil"
+                        : selectedPayment.paymentMethod === "zelle"
+                          ? "Zelle"
+                          : selectedPayment.paymentMethod === "binance"
+                            ? "Binance"
+                            : "Efectivo"}
+                    </p>
+                    <p className="text-sm">
+                      <strong>Números:</strong> {selectedPayment.numbersPurchased.join(", ")}
+                    </p>
+                    <p className="text-sm">
+                      <strong>Fecha:</strong> {new Date(selectedPayment.createdAt).toLocaleString()}
+                    </p>
+                  </CardContent>
+                </Card>
+
+                {/* Detalles de verificación */}
+                {selectedPayment.paymentDetails && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Datos de Verificación</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {selectedPayment.paymentMethod === "pago_movil" && (
+                        <>
+                          {selectedPayment.paymentDetails.banco_origen && (
+                            <p className="text-sm">
+                              <strong>Banco Origen:</strong> {selectedPayment.paymentDetails.banco_origen}
+                            </p>
+                          )}
+                          {selectedPayment.paymentDetails.telefono && (
+                            <p className="text-sm">
+                              <strong>Teléfono:</strong> {selectedPayment.paymentDetails.telefono}
+                            </p>
+                          )}
+                          {selectedPayment.paymentDetails.cedula && (
+                            <p className="text-sm">
+                              <strong>Cédula:</strong> {selectedPayment.paymentDetails.cedula}
+                            </p>
+                          )}
+                          {selectedPayment.paymentDetails.referencia && (
+                            <p className="text-sm">
+                              <strong>Referencia:</strong> {selectedPayment.paymentDetails.referencia}
+                            </p>
+                          )}
+                          {selectedPayment.paymentDetails.monto && (
+                            <p className="text-sm">
+                              <strong>Monto Enviado:</strong> {selectedPayment.paymentDetails.monto} Bs
+                            </p>
+                          )}
+                        </>
+                      )}
+
+                      {selectedPayment.paymentMethod === "zelle" && (
+                        <>
+                          {selectedPayment.paymentDetails.zelle_email_phone && (
+                            <p className="text-sm">
+                              <strong>Email/Teléfono Zelle:</strong> {selectedPayment.paymentDetails.zelle_email_phone}
+                            </p>
+                          )}
+                          {selectedPayment.paymentDetails.referencia && (
+                            <p className="text-sm">
+                              <strong>Referencia:</strong> {selectedPayment.paymentDetails.referencia}
+                            </p>
+                          )}
+                        </>
+                      )}
+
+                      {selectedPayment.paymentMethod === "binance" && (
+                        <>
+                          {selectedPayment.paymentDetails.transaction_id && (
+                            <p className="text-sm">
+                              <strong>ID de Transacción:</strong> {selectedPayment.paymentDetails.transaction_id}
+                            </p>
+                          )}
+                          {selectedPayment.paymentDetails.monto && (
+                            <p className="text-sm">
+                              <strong>Monto Enviado:</strong> {selectedPayment.paymentDetails.monto} USDT
+                            </p>
+                          )}
+                        </>
+                      )}
+
+                      {selectedPayment.paymentDetails.notas && (
+                        <p className="text-sm">
+                          <strong>Notas:</strong> {selectedPayment.paymentDetails.notas}
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Comprobante de pago */}
+                {selectedPayment.paymentProofUrl && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Comprobante de Pago</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <a
+                          href={selectedPayment.paymentProofUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-primary hover:underline"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          Ver captura en nueva pestaña
+                        </a>
+                        <div className="border rounded-lg overflow-hidden">
+                          <img
+                            src={selectedPayment.paymentProofUrl || "/placeholder.svg"}
+                            alt="Comprobante de pago"
+                            className="w-full h-auto"
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none"
+                              e.currentTarget.nextElementSibling?.classList.remove("hidden")
+                            }}
+                          />
+                          <div className="hidden p-8 text-center text-muted-foreground">
+                            <ImageIcon className="h-12 w-12 mx-auto mb-2" />
+                            <p>No se pudo cargar la imagen</p>
+                            <a
+                              href={selectedPayment.paymentProofUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline text-sm"
+                            >
+                              Abrir enlace
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {!selectedPayment.paymentProofUrl && (
+                  <Alert>
+                    <AlertDescription>El usuario aún no ha enviado el comprobante de pago.</AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Acciones */}
+                <div className="flex gap-2 pt-4">
+                  <Button
+                    variant="outline"
+                    className="flex-1 bg-transparent"
+                    onClick={() => setShowPaymentDetailsDialog(false)}
+                  >
+                    Cerrar
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    className="flex-1"
+                    onClick={() => {
+                      setShowPaymentDetailsDialog(false)
+                      setShowVerifyDialog(true)
+                    }}
+                    disabled={isVerifying}
+                  >
+                    <XCircle className="h-4 w-4 mr-2" />
+                    Rechazar
+                  </Button>
+                  <Button className="flex-1" onClick={() => handleVerifyPayment("completed")} disabled={isVerifying}>
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    {isVerifying ? "Verificando..." : "Aprobar"}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
 
       {/* AlertDialog for payment verification */}
       <AlertDialog open={showVerifyDialog} onOpenChange={setShowVerifyDialog}>
