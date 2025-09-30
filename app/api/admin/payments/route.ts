@@ -56,6 +56,8 @@ export async function GET(request: NextRequest) {
       paymentMethod: payment.payment_method,
       paymentStatus: payment.payment_status,
       paymentReference: payment.payment_reference,
+      paymentProofUrl: payment.payment_proof_url,
+      paymentDetails: payment.payment_details ? JSON.parse(payment.payment_details) : null,
       numbersPurchased: JSON.parse(payment.numbers_purchased || "[]"),
       createdAt: payment.created_at,
       updatedAt: payment.updated_at,
@@ -101,8 +103,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Datos incompletos" }, { status: 400 })
     }
 
-    // Validar que el status sea válido
-    const validStatuses = ["pending", "completed", "failed", "refunded"]
+    const validStatuses = ["pending", "completed", "failed"]
     if (!validStatuses.includes(status)) {
       return NextResponse.json({ error: "Estado de pago inválido" }, { status: 400 })
     }
@@ -115,11 +116,9 @@ export async function PATCH(request: NextRequest) {
     }
 
     const payment = paymentInfo[0]
+    const numbers = JSON.parse(payment.numbers_purchased || "[]")
 
-    // Si se está marcando como completado, actualizar los números a "paid"
     if (status === "completed" && payment.payment_status !== "completed") {
-      const numbers = JSON.parse(payment.numbers_purchased || "[]")
-
       for (const number of numbers) {
         await query(
           'UPDATE raffle_numbers SET status = "paid", paid_at = NOW(), payment_id = ? WHERE rifa_id = ? AND number = ?',
@@ -128,17 +127,19 @@ export async function PATCH(request: NextRequest) {
       }
 
       // Generar referencia de pago si no existe
-      const paymentReference = payment.payment_reference || `ADMIN_VERIFIED_${paymentId}_${Date.now()}`
+      const paymentReference = payment.payment_reference || `VERIFIED_${paymentId}_${Date.now()}`
 
       await query("UPDATE payments SET payment_status = ?, payment_reference = ?, updated_at = NOW() WHERE id = ?", [
         status,
         paymentReference,
         paymentId,
       ])
-    } else if (status === "failed" || status === "refunded") {
-      // Si se marca como fallido o reembolsado, liberar los números
-      const numbers = JSON.parse(payment.numbers_purchased || "[]")
 
+      return NextResponse.json({
+        success: true,
+        message: "Pago aprobado. Los tickets han sido asignados al usuario.",
+      })
+    } else if (status === "failed") {
       for (const number of numbers) {
         await query(
           'UPDATE raffle_numbers SET status = "available", user_id = NULL, reserved_at = NULL, paid_at = NULL, payment_id = NULL WHERE rifa_id = ? AND number = ?',
@@ -147,15 +148,20 @@ export async function PATCH(request: NextRequest) {
       }
 
       await query("UPDATE payments SET payment_status = ?, updated_at = NOW() WHERE id = ?", [status, paymentId])
+
+      return NextResponse.json({
+        success: true,
+        message: "Pago rechazado. Los números han sido liberados y están disponibles nuevamente.",
+      })
     } else {
       // Solo actualizar el estado
       await query("UPDATE payments SET payment_status = ?, updated_at = NOW() WHERE id = ?", [status, paymentId])
-    }
 
-    return NextResponse.json({
-      success: true,
-      message: "Estado del pago actualizado exitosamente",
-    })
+      return NextResponse.json({
+        success: true,
+        message: "Estado del pago actualizado exitosamente",
+      })
+    }
   } catch (error) {
     console.error("Error updating payment:", error)
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
