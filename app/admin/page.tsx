@@ -502,7 +502,7 @@ export default function AdminDashboard() {
                       <div className="flex-1">
                         <h3 className="font-semibold">{payment.user.name}</h3>
                         <p className="text-sm text-muted-foreground">
-                          {payment.numbersPurchased.length} números - ${payment.amount.toFixed(2)}
+                          {payment.numbersPurchased.length} números - ${Number(payment.amount).toFixed(2)}
                         </p>
                         <p className="text-sm text-muted-foreground">
                           Números: {payment.numbersPurchased.slice(0, 3).join(", ")}
@@ -597,7 +597,7 @@ export default function AdminDashboard() {
                     <strong>Rifa:</strong> {selectedPayment.rifa.title}
                   </p>
                   <p>
-                    <strong>Monto:</strong> ${selectedPayment.amount.toFixed(2)}
+                    <strong>Monto:</strong> ${Number(selectedPayment.amount).toFixed(2)}
                   </p>
                   <p>
                     <strong>Números:</strong> {selectedPayment.numbersPurchased.join(", ")}
