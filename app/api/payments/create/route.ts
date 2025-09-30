@@ -56,54 +56,52 @@ export async function POST(request: NextRequest) {
     // Calcular monto total
     const totalAmount = selectedNumbers.length * rifa.ticket_price
 
+    const initialStatus = paymentMethod === "efectivo" ? "pending" : "pending"
+    const numberStatus = paymentMethod === "efectivo" ? "reserved" : "reserved"
+
     // Crear registro de pago
     const paymentResult = (await query(
       `INSERT INTO payments (user_id, rifa_id, amount, payment_method, payment_status, numbers_purchased)
-       VALUES (?, ?, ?, ?, 'pending', ?)`,
-      [userId, rifaId, totalAmount, paymentMethod || "card", JSON.stringify(selectedNumbers)],
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [userId, rifaId, totalAmount, paymentMethod || "zelle", initialStatus, JSON.stringify(selectedNumbers)],
     )) as any
 
     const paymentId = paymentResult.insertId
 
-    // Reservar los números temporalmente (15 minutos)
-    const reservationExpiry = new Date(Date.now() + 15 * 60 * 1000) // 15 minutos
-
     for (const number of selectedNumbers) {
       await query(
-        'UPDATE raffle_numbers SET status = "reserved", user_id = ?, reserved_at = NOW() WHERE rifa_id = ? AND number = ?',
-        [userId, rifaId, number],
+        `UPDATE raffle_numbers SET status = ?, user_id = ?, reserved_at = NOW() WHERE rifa_id = ? AND number = ?`,
+        [numberStatus, userId, rifaId, number],
       )
     }
 
-    // Simular procesamiento de pago (en producción aquí iría la integración con Stripe, PayPal, etc.)
-    // Por ahora, simularemos un pago exitoso después de 2 segundos
-    setTimeout(async () => {
-      try {
-        // Marcar pago como completado
-        await query('UPDATE payments SET payment_status = "completed", payment_reference = ? WHERE id = ?', [
-          `PAY_${paymentId}_${Date.now()}`,
-          paymentId,
-        ])
-
-        // Marcar números como pagados
-        for (const number of selectedNumbers) {
-          await query('UPDATE raffle_numbers SET status = "paid", paid_at = NOW() WHERE rifa_id = ? AND number = ?', [
-            rifaId,
-            number,
+    if (paymentMethod !== "efectivo") {
+      setTimeout(async () => {
+        try {
+          await query('UPDATE payments SET payment_status = "completed", payment_reference = ? WHERE id = ?', [
+            `PAY_${paymentId}_${Date.now()}`,
+            paymentId,
           ])
+
+          for (const number of selectedNumbers) {
+            await query('UPDATE raffle_numbers SET status = "paid", paid_at = NOW() WHERE rifa_id = ? AND number = ?', [
+              rifaId,
+              number,
+            ])
+          }
+        } catch (error) {
+          console.error("Error completing payment:", error)
         }
-      } catch (error) {
-        console.error("Error completing payment:", error)
-      }
-    }, 2000)
+      }, 2000)
+    }
 
     return NextResponse.json({
       success: true,
       paymentId,
-      message: "Pago procesado exitosamente",
+      message: paymentMethod === "efectivo" ? "Números reservados exitosamente" : "Pago procesado exitosamente",
       totalAmount,
       selectedNumbers,
-      reservationExpiry: reservationExpiry.toISOString(),
+      paymentMethod,
     })
   } catch (error) {
     console.error("Payment creation error:", error)
